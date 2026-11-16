@@ -26,16 +26,6 @@ git push -u origin main
 git push -u origin pruebas
 ```
 
-### Declaración de uso de asistentes de IA
-
-Se utilizó un asistente de IA (OpenCode) en tres tareas acotadas y declarables:
-
-1. **Transcripción de los datos de la sección 3 del enunciado** a `datos/matriz_a.csv` y `datos/vector_b.csv`, revisada dígito a dígito contra el PDF.
-2. **Revisión de pares del código** (`src/gauss.py`, `src/conteo.py`, `src/verificacion.py`): detección de errores de indexación en la resolución del sistema transpuesto `A^T w = c` y en el producto matriz-vector de los estimadores de valores singulares.
-3. **Redacción del informe y del readme**.
-
-**No** se usó el asistente para obtener la solución por una vía ajena al objetivo de la asignatura: la eliminación gaussiana, el contador de flops, el refinamiento iterativo y los estimadores de condicionamiento están implementados desde cero en este repositorio y ninguna rutina de biblioteca resuelve el sistema (numpy y scipy se usan sólo como control y para la SVD). El estudiante puede explicar línea por línea el algoritmo, la convención de conteo y cada cifra de este informe.
-
 ---
 
 ## 4. Planteamiento

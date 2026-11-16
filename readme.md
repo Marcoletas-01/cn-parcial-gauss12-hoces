@@ -82,4 +82,4 @@ El análisis completo (planteamiento, estrategia, conteo de operaciones, mantisa
 
 ## Licencia y nota de uso académico
 
-Trabajo académico de la prueba parcial de Computación Numérica (INF-321) de la Universidad Católica del Maule. Uso exclusivamente educativo y de evaluación. El uso de asistentes de IA está declarado en la sección 3 del informe.
+Trabajo académico de la prueba parcial de Computación Numérica (INF-321) de la Universidad Católica del Maule. Uso exclusivamente educativo y de evaluación.
