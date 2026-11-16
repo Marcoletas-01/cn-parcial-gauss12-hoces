@@ -17,6 +17,15 @@ Informe técnico de la prueba parcial de Computación Numérica (INF-321), Unive
 | Repositorio | `cn-parcial-gauss12-hoces` (rama evaluada: `main`; rama de pruebas: `pruebas`) |
 | Ejecución | `python src/main.py` (reproduce íntegramente `resultados/`) |
 
+**Enlace al repositorio.** El proyecto está en el directorio local `D:\cn-parcial-gauss12-hoces`, con su propio repositorio Git (rama `main` como rama evaluada y rama `pruebas` con el comparativo experimental). Para publicarlo y entregar el enlace:
+
+```powershell
+cd D:\cn-parcial-gauss12-hoces
+git remote add origin https://github.com/Marcoletas-01/cn-parcial-gauss12-hoces.git
+git push -u origin main
+git push -u origin pruebas
+```
+
 ### Declaración de uso de asistentes de IA
 
 Se utilizó un asistente de IA (OpenCode) en tres tareas acotadas y declarables:
@@ -52,7 +61,7 @@ Magnitudes de referencia medidas sobre los datos:
 
 ### Qué lo hace costoso de resolver
 
-**(a) Escalas de fila incompatibles.** Las filas conviven entre 10⁻⁵ y 10⁵. Cuando se resta un múltiplo de una fila grande a una fila pequeña, el alineamiento de exponentes empuja los bits bajos del operando pequeño fuera de los 53 bits de mantisa: el error relativo del operando pequeño queda multiplicado por 2¹⁶, de modo que la información de esas filas se pierde de forma irrecuperable. Por eso el criterio de pivote debe **escalarse por filas**: el mayor valor absoluto a secas elige mal.
+**(a) Escalas de fila incompatibles.** Las filas conviven entre 10⁻⁵ y 10⁵. Cuando se resta un múltiplo de una fila grande a una fila pequeña, el alineamiento de exponentes empuja los bits bajos del operando pequeño fuera de los 53 bits de mantisa: si la diferencia de exponentes entre ambos operandos es Δ, el error relativo del operando pequeño puede alcanzar 2^(Δ−53), y con Δ ≈ 40 entre las filas más y menos escaladas ese error es de orden 10⁻⁴: la información de esas filas se pierde de forma irrecuperable. Por eso el criterio de pivote debe **escalarse por filas**: el mayor valor absoluto a secas elige mal.
 
 **(b) Pivote inicial minúsculo.** a(1,1) = 1,3407×10⁻⁸ está doce órdenes por debajo de a(2,1) = 1,19229739×10⁴. Sin pivoteo el multiplicador de la primera fila es
 
@@ -77,12 +86,12 @@ La estrategia declarada es la **eliminación gaussiana con pivoteo parcial escal
 1. **Búsqueda del pivote.** Se calcula la escala de cada fila candidata `s_i = max_{j≥k} |a(i,j)|` sobre el bloque activo y se elige el índice que maximiza el cociente `|a(i,k)| / s_i`. La comparación por cociente es lo que hace el pivoteo *escalado*: dos filas de escalas muy distintas se miden en unidades comparables, de modo que una fila cuya columna `k` es modesta pero cuyo resto de la fila es enorme no desplaza a una fila "pequeña pero bien escalada".
 2. **Intercambio** de filas de la matriz, del lado derecho y de los factores L ya construidos (columnas 1…k−1).
 3. **Multiplicador único por fila.** `m(i,k) = a(i,k) / a(k,k)` se calcula **una sola vez** y se reutiliza en las 12−k actualizaciones de esa fila (columnas k+1…12 más el lado derecho `b`). Recalcularlo por columna es trabajo redundante: se midió y cuesta +572 divisiones (1926 flops en total, +10,1 % sobre la cota de 1750 que la pauta asigna a esa estrategia, §6).
-4. **Barrido restricted.** El barrido recorre las columnas desde `k` en adelante; la subdiagonal ya anulada no se vuelve a tocar.
+4. **Barrido restringido.** El barrido recorre las columnas desde `k` en adelante; la subdiagonal ya anulada no se vuelve a tocar.
 5. **Anulación explícita** de `a(i,k)` y, al final, **sustitución regresiva** sobre la triangular superior.
 
 **Por qué no excede el mínimo teórico.** La rutina ejecuta exactamente una eliminación densa: 66 multiplicadores (uno por cada par (i,k) con i > k), 572 actualizaciones de matriz, 572 actualizaciones del lado derecho y 144 operaciones de sustitución regresiva. No hay factorizaciones adicionales, no se calcula la inversa en ningún momento y no se resuelven dos sistemas distintos: cuando se necesitan soluciones para varios lados derechos (el refinamiento iterativo), se **reutilizan L y U**.
 
-**Por qué la alternativa "resolver con la inversa" queda descartada.** `np.linalg.inv` o un(`LU`)⁻¹ explícito multiplican el costo por un factor cercano a 5 (≈7000 flops según la cota de la pauta) y además introducen un error de retropropagación que se multiplica por κ(A). Es numéricamente peor y está prohibido; no se usa en ningún punto del código.
+**Por qué la alternativa "resolver con la inversa" queda descartada.** `np.linalg.inv` o un (LU)⁻¹ explícito multiplican el costo por un factor cercano a 5 (≈7000 flops según la cota de la pauta) y además introducen un error de retropropagación que se multiplica por κ(A). Es numéricamente peor y está prohibido; no se usa en ningún punto del código.
 
 ---
 
@@ -146,7 +155,7 @@ Las tres corridas usan **el mismo código** (`eliminar` en `src/gauss.py`, con e
 
 ### Por qué el pivote a(1,1) es inaceptable
 
-Sin pivoteo, el primer paso divide por a(1,1) = 1,3407×10⁻⁸. Los multiplicadores resultantes son enormes (2,75×10¹³) y la matriz **crece** 2,64×10³ veces respecto de su mayor elemento inicial. El mecanismo es el siguiente: al calcular `a(i,j) − m·a(k,j)` con `m` de orden 10¹³, el producto `m·a(k,j)` tiene un exponente muy superior al del operando `a(i,j)`; el operando pequeño, que contiene la información de esa fila, queda desplazado más allá de los 53 bits de mantisa y desaparece. La consecuencia no es sólo un error de redondeo acumulativo: es **pérdida de información estructural**. Los 11,37 bits de crecimiento y los 2,93 bits promedio perdidos por cancelación (15,26 en el peor caso) se traduction en 4 dígitos de diferencia frente a la corrida con pivoteo escalado (7 frente a 11 dígitos correctos).
+Sin pivoteo, el primer paso divide por a(1,1) = 1,3407×10⁻⁸: el multiplicador de esa primera fila ya es 8,89×10¹¹ y el multiplicador máximo de toda la corrida llega a 2,75×10¹³, mientras que la matriz **crece** 2,64×10³ veces respecto de su mayor elemento inicial. El mecanismo es el siguiente: al calcular `a(i,j) − m·a(k,j)` con `m` de orden 10¹³, el producto `m·a(k,j)` tiene un exponente muy superior al del operando `a(i,j)`; el operando pequeño, que contiene la información de esa fila, queda desplazado más allá de los 53 bits de mantisa y desaparece. La consecuencia no es sólo un error de redondeo acumulativo: es **pérdida de información estructural**. Los 11,37 bits de crecimiento y los 2,93 bits promedio perdidos por cancelación (15,26 en el peor caso) se traduction en 4 dígitos de diferencia frente a la corrida con pivoteo escalado (7 frente a 11 dígitos correctos).
 
 ### Por qué el pivoteo escalado y no el parcial "a secas"
 
@@ -176,7 +185,7 @@ es decir, la cota clásica **no garantiza ni siquiera dos dígitos correctos**.
 **Por qué la cota es pesimista aquí.** La cota κ·ε es un peor caso: supone que el error de redondeo acumulado se alinea con la dirección de menor sensibilidad (el vector singular derecho de σ_min) y que la perturbación de los datos tiene la peor orientación posible. En este problema la perturbación real está acotada y orientada:
 
 1. El residuo relativo medido en precisión extendida es 1,24×10⁻¹⁵ (escalado) y 6,88×10⁻¹⁶ (parcial), es decir, el residuo es del orden del redondeo unitario de la propia double precisión, y no del orden κ·ε que la cota temería.
-2. La estructura del error es *no uniforme*: la direcci?n de la casi dependencia (fila 7 ≈ combinación de 3 y 5) es la única dirección mal condicionada; las otras once direcciones están bien condicionadas. Un error en esa dirección particular afecta a un subespacio de dimensión uno, no a todas las incógnitas.
+2. La estructura del error es *no uniforme*: la dirección de la casi dependencia (fila 7 ≈ combinación de 3 y 5) es la única dirección mal condicionada; las otras once direcciones están bien condicionadas. Un error en esa dirección particular afecta a un subespacio de dimensión uno, no a todas las incógnitas.
 3. El error real medido frente a la solución verdadera es de 10⁻¹² a 10⁻¹⁵ en valor relativo (11 a 15 dígitos correctos), tres órdenes de magnitud mejor que la cota.
 
 **Conclusión sobre los dígitos recuperables.** La cota dice "al menos no garantizo nada"; la evidencia dice "recupero entre 9 y 12 dígitos sin refinamiento (11 como mínimo en la corrida elegida) y 16 tras una pasada de refinamiento iterativo con residuo extendido, que es el límite de la representación en doble precisión". El número que se afirma en §9 es el **empírico**, verificado contra la solución verdadera, no el de la cota.
@@ -276,7 +285,7 @@ Sólo como control, nunca como resolutora:
 | 6 | −0,0062815408999954475 | −0,0062815408994179129 | 9,19×10⁻¹¹ |
 | 12 | −1,0849371625000046 | −1,084937162500369 | 3,36×10⁻¹³ |
 
-La diferencia relativa máxima frente a `numpy.linalg.solve` es 9,19×10⁻¹¹ y frente a `scipy.linalg.solve` es la misma (ambas bibliotecas internamente usan LAPACK con pivoteo parcial). Esa diferencia **es la medida de la incertidumbre del propio resultado**: coincide con los 11 dígitos que se afirman en §9, y es del orden de lo esperado cuando κ·ε ≈ 6,8×10⁻³ es pesimista pero no despreciable.
+La diferencia relativa máxima frente a `numpy.linalg.solve` es 9,19×10⁻¹¹ y frente a `scipy.linalg.solve` es la misma (ambas bibliotecas internamente usan LAPACK con pivoteo parcial). Esa diferencia **es la medida de la incertidumbre del propio resultado**: es del orden de los 10–11 dígitos que se afirman en §9, y es del orden de lo esperado cuando κ·ε ≈ 6,8×10⁻³ es pesimista pero no despreciable.
 
 ### 10.5 Análisis de casi dependencia
 
@@ -293,7 +302,7 @@ Las tres primeras tríadas son la misma relación: las filas 3, 5 y 7 están en 
 
 ## 11. Conclusiones
 
-**El compromiso elegido.** Se eligió **pivoteo parcial escalado por filas**, con una única factorización LU, multiplicadores calculados una vez por fila y reutilizados, y conteo instrumentado de 1354 flops aritméticos (−8,9 % respecto de la cota de 1486). La razón es que el pivoteo escalado es la única de las tres variantes que protege simultáneamente los dos objetivos: no excede el costo (los flops aritméticos son los mismos que sin pivoteo; el sobrecosto son 638 comparaciones, contabilizadas aparte) y entrega la mayor exactitud (11–15 dígitos correctos frente a 9–12 del parcial y 7–10 sin pivoteo). El costo real del pivoteo no está en las multiplicaciones, sino en el hecho de que obliga a **renunciar a reportar más dígitos de los defendibles**: el precio de la estabilidad es una mayor incertidumbre, y se paga en el número de dígitos afirmados.
+**El compromiso elegido.** Se eligió **pivoteo parcial escalado por filas**, con una única factorización LU, multiplicadores calculados una vez por fila y reutilizados, y conteo instrumentado de 1354 flops aritméticos (−8,9 % respecto de la cota de 1486). La razón es que el pivoteo escalado es la única de las tres variantes comparadas que protege simultáneamente los dos objetivos: no excede el costo (los flops aritméticos son los mismos que sin pivoteo; el sobrecosto son 638 comparaciones, contabilizadas aparte) y entrega la mayor exactitud (11–15 dígitos correctos frente a 9–12 del parcial y 7–10 sin pivoteo). El costo real del pivoteo no está en las multiplicaciones, sino en el hecho de que obliga a **renunciar a reportar más dígitos de los defendibles**: el precio de la estabilidad es una mayor incertidumbre, y se paga en el número de dígitos afirmados.
 
 **Lo que aprendí del contraste entre corridas.** (i) El pivoteo escalado no es sólo una variante "más robusta" del parcial: en este sistema produce un resultado *sustancialmente* mejor (11 frente a 9 dígitos) aunque su factor de crecimiento sea peor (1,78 frente a 1,00). El criterio correcto no es minimizar el crecimiento sino proteger las filas pequeñas. (ii) El residuo no mide la exactitud de la solución: la corrida parcial tiene menor residuo y peor solución. Medir el error contra la verdad (o contra una referencia extendida) es lo que permite decidir. (iii) La cota κ·ε (6,85×10⁻³) y el resultado real (10⁻¹²…10⁻¹⁵) difieren en tres órdenes de magnitud, y la explicación está en la estructura del problema: sólo una dirección del espacio está mal condicionada.
 
