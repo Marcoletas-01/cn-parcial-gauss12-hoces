@@ -1,0 +1,17 @@
+# Entornos virtuales y artefactos de Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Notebooks y entorno de trabajo
+.ipynb_checkpoints/
+*.ipynb
+.vscode/
+.idea/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
